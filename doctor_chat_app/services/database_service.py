@@ -27,6 +27,7 @@ class Patient(Base):
     date_of_birth = Column(String(10))
     contact_information = Column(String(100))
     medical_record_number = Column(String(20), unique=True)
+    category = Column(String(10), default="acute")  # 'chronic' or 'acute'
     
     # Relationships
     consultations = relationship("Consultation", back_populates="patient")
@@ -101,25 +102,29 @@ class DatabaseService:
                 name="John Doe", 
                 date_of_birth="1980-05-15", 
                 contact_information="john.doe@email.com, (555) 123-4567", 
-                medical_record_number="MRN12345"
+                medical_record_number="MRN12345",
+                category="chronic"  # Cardiac patient with ongoing condition
             )
             patient2 = Patient(
                 name="Sarah Williams", 
                 date_of_birth="1992-09-23", 
                 contact_information="sarah.w@email.com, (555) 987-6543", 
-                medical_record_number="MRN67890"
+                medical_record_number="MRN67890",
+                category="acute"  # Generally healthy, comes for acute episodes
             )
             patient3 = Patient(
                 name="Michael Rodriguez", 
                 date_of_birth="1975-12-10", 
                 contact_information="m.rodriguez@email.com, (555) 555-5555", 
-                medical_record_number="MRN24680"
+                medical_record_number="MRN24680",
+                category="chronic"  # Diabetes patient requiring ongoing management
             )
             patient4 = Patient(
                 name="Emily Johnson", 
                 date_of_birth="1988-03-27", 
                 contact_information="emily.j@email.com, (555) 222-3333", 
-                medical_record_number="MRN13579"
+                medical_record_number="MRN13579",
+                category="chronic"  # Migraine patient requiring ongoing care
             )
             session.add_all([patient1, patient2, patient3, patient4])
             session.commit()
@@ -347,6 +352,37 @@ class DatabaseService:
         patient = session.query(Patient).filter(Patient.id == patient_id).first()
         session.close()
         return patient.name if patient else "Unknown Patient"
+        
+    def get_patient_category(self, patient_id: int) -> str:
+        """Get category (chronic/acute) of patient by ID"""
+        session = self.Session()
+        patient = session.query(Patient).filter(Patient.id == patient_id).first()
+        session.close()
+        return patient.category if patient else "unknown"
+        
+    def get_patients_by_category(self, doctor_id: int, category: str) -> List[int]:
+        """Get patients of a specific category (chronic/acute) associated with a doctor
+        
+        Args:
+            doctor_id: ID of the doctor
+            category: 'chronic' or 'acute'
+            
+        Returns:
+            List of patient IDs matching the category
+        """
+        session = self.Session()
+        
+        # First get all patients for this doctor
+        all_patient_ids = self.get_patients_for_doctor(doctor_id)
+        
+        # Then filter by category
+        filtered_patients = session.query(Patient.id).filter(
+            Patient.id.in_(all_patient_ids),
+            Patient.category == category
+        ).all()
+        
+        session.close()
+        return [p[0] for p in filtered_patients]
     
     def get_patient(self, patient_id: int) -> Optional[Patient]:
         """Get patient details by ID"""
@@ -421,3 +457,38 @@ class DatabaseService:
         result = consultation
         session.close()
         return result
+        
+    def update_patient_category(self, patient_id: int, category: str) -> bool:
+        """Update a patient's category (chronic/acute)
+        
+        Args:
+            patient_id: ID of the patient
+            category: New category ('chronic' or 'acute')
+            
+        Returns:
+            True if update was successful, False otherwise
+        """
+        session = self.Session()
+        
+        # Validate category value
+        if category not in ['chronic', 'acute']:
+            session.close()
+            return False
+        
+        try:
+            # Get patient and update category
+            patient = session.query(Patient).filter(Patient.id == patient_id).first()
+            if not patient:
+                session.close()
+                return False
+                
+            patient.category = category
+            session.commit()
+            session.close()
+            return True
+            
+        except Exception as e:
+            print(f"Error updating patient category: {str(e)}")
+            session.rollback()
+            session.close()
+            return False

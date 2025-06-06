@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import os
+import time
 from dotenv import load_dotenv
 
 # Import services and utilities
@@ -47,12 +48,29 @@ doctor_id = st.sidebar.selectbox(
     format_func=lambda x: db_service.get_doctor_name(x)
 )
 
-# Patient selection
-patient_list = db_service.get_patients_for_doctor(doctor_id)
+# Patient category filter
+patient_category_filter = st.sidebar.radio(
+    "Filter Patients By Category",
+    options=["all", "chronic", "acute"],
+    horizontal=True,
+    index=0,
+    format_func=lambda x: x.capitalize()
+)
+
+# Patient selection with filtering
+if patient_category_filter == "all":
+    patient_list = db_service.get_patients_for_doctor(doctor_id)
+else:
+    patient_list = db_service.get_patients_by_category(doctor_id, patient_category_filter)
+
+# Show count of patients by category
+if patient_list:
+    st.sidebar.caption(f"Showing {len(patient_list)} patient(s)")
+
 patient_id = st.sidebar.selectbox(
     "Select Patient",
     options=patient_list,
-    format_func=lambda x: db_service.get_patient_name(x)
+    format_func=lambda x: f"{db_service.get_patient_name(x)} ({db_service.get_patient_category(x).capitalize()})"
 )
 
 # Tab navigation
@@ -131,8 +149,34 @@ with tab2:
         patient = db_service.get_patient(patient_id)
         st.subheader(f"Patient: {patient.name}")
         
-        st.markdown(f"**Date of Birth:** {patient.date_of_birth}")
-        st.markdown(f"**Medical Record Number:** {patient.medical_record_number}")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown(f"**Date of Birth:** {patient.date_of_birth}")
+            st.markdown(f"**Medical Record Number:** {patient.medical_record_number}")
+        
+        with col2:
+            # Display current category with appropriate highlighting
+            if patient.category == "chronic":
+                st.markdown(f"**Patient Category:** <span style='background-color:#FFDDDD; padding:3px 8px; border-radius:3px;'>⚠️ Chronic</span>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"**Patient Category:** <span style='background-color:#DDFFDD; padding:3px 8px; border-radius:3px;'>✓ Acute</span>", unsafe_allow_html=True)
+            
+            # Allow doctor to change patient category
+            new_category = st.radio(
+                "Change patient category:",
+                options=["chronic", "acute"],
+                horizontal=True,
+                index=0 if patient.category == "chronic" else 1
+            )
+            
+            if st.button("Update Category"):
+                # Update patient category in database
+                db_service.update_patient_category(patient_id, new_category)
+                st.success(f"Patient category updated to {new_category}")
+                # Add a small delay before reloading the page
+                time.sleep(0.5)
+                st.rerun()
         
         # Previous consultations
         st.subheader("Previous Consultations")

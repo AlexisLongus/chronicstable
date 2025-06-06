@@ -11,6 +11,7 @@ class Patient:
     date_of_birth: str
     contact_information: str
     medical_record_number: str
+    category: str  # 'chronic' or 'acute'
 
 
 @dataclass
