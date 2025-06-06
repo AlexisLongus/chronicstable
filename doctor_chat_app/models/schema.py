@@ -1,3 +1,7 @@
+"""Data models for ChronicStable Doctor Chat application.
+
+Defines the core data structures used throughout the application.
+"""
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
@@ -5,7 +9,7 @@ from typing import List, Optional
 
 @dataclass
 class Patient:
-    """Patient data model"""
+    """Patient data model."""
     id: int
     name: str
     date_of_birth: str
@@ -16,7 +20,7 @@ class Patient:
 
 @dataclass
 class Doctor:
-    """Doctor data model"""
+    """Doctor data model with professional information."""
     id: int
     name: str
     specialization: str
@@ -25,7 +29,7 @@ class Doctor:
 
 @dataclass
 class Consultation:
-    """Patient consultation data model"""
+    """Patient consultation data model for medical visits."""
     id: int
     patient_id: int
     doctor_id: int
@@ -37,10 +41,10 @@ class Consultation:
 
 @dataclass
 class Appointment:
-    """Appointment data model"""
+    """Appointment data model for scheduling patient visits."""
     id: int
     patient_id: int
     doctor_id: int
     date_time: datetime
-    status: str
+    status: str  # 'scheduled', 'completed', 'canceled'
     purpose: str

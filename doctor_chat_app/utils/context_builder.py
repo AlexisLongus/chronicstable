@@ -1,10 +1,15 @@
+"""Context building utilities for enhancing LLM responses.
+
+Provides functions to build context from patient data and create system prompts.
+"""
 from datetime import datetime
 from typing import Dict, Any, List
+
 from services.database_service import DatabaseService
 
+
 def build_patient_context(patient_id: int, db_service: DatabaseService) -> str:
-    """
-    Build context string for the LLM with relevant patient information
+    """Build context string for the LLM with relevant patient information.
     
     Args:
         patient_id: ID of the patient
@@ -22,21 +27,24 @@ def build_patient_context(patient_id: int, db_service: DatabaseService) -> str:
     
     # Build context with patient information
     context_parts = [
-        f"PATIENT INFORMATION:",
+        "PATIENT INFORMATION:",
         f"Name: {patient.name}",
         f"Date of Birth: {patient.date_of_birth}",
         f"Medical Record Number: {patient.medical_record_number}",
         f"Contact: {patient.contact_information}",
+        f"Category: {patient.category.capitalize()}",
         "\n"
     ]
     
     # Add consultation history
     context_parts.append("CONSULTATION HISTORY:")
     if consultations:
-        for i, consultation in enumerate(consultations[:3]):  # Limit to most recent 3
+        # Limit to most recent 3 consultations
+        for i, consultation in enumerate(consultations[:3]):
             doc_name = db_service.get_doctor_name(consultation.doctor_id)
             context_parts.extend([
-                f"Consultation on {consultation.date.strftime('%Y-%m-%d')} with {doc_name}:",
+                f"Consultation on {consultation.date.strftime('%Y-%m-%d')} "
+                f"with {doc_name}:",
                 f"Diagnosis: {consultation.diagnosis}",
                 f"Notes: {consultation.notes}",
                 f"Treatment: {consultation.treatment_plan}",
@@ -47,12 +55,17 @@ def build_patient_context(patient_id: int, db_service: DatabaseService) -> str:
     
     # Add upcoming appointments
     context_parts.append("UPCOMING APPOINTMENTS:")
-    upcoming_appointments = [apt for apt in appointments if apt.date_time > datetime.now() and apt.status == "scheduled"]
+    upcoming_appointments = [
+        apt for apt in appointments 
+        if apt.date_time > datetime.now() and apt.status == "scheduled"
+    ]
+    
     if upcoming_appointments:
         for appointment in upcoming_appointments:
             doc_name = db_service.get_doctor_name(appointment.doctor_id)
             context_parts.append(
-                f"{appointment.date_time.strftime('%Y-%m-%d %H:%M')} with {doc_name}: {appointment.purpose}"
+                f"{appointment.date_time.strftime('%Y-%m-%d %H:%M')} with "
+                f"{doc_name}: {appointment.purpose}"
             )
     else:
         context_parts.append("No upcoming appointments.")
@@ -61,15 +74,15 @@ def build_patient_context(patient_id: int, db_service: DatabaseService) -> str:
 
 
 def build_system_prompt() -> str:
-    """
-    Build the system prompt for the LLM
+    """Build the system prompt for the LLM.
     
     Returns:
-        A system prompt string
+        A system prompt string with guidelines for the AI assistant
     """
-    return """You are an AI assistant for doctors. You help doctors access and interpret patient information, 
-schedule appointments, and provide relevant medical information. Always maintain a professional and 
-compassionate tone. Do not provide medical advice unless it's based on the patient's consultation history.
+    return """You are an AI assistant for doctors. You help doctors access and interpret 
+patient information, schedule appointments, and provide relevant medical information. 
+Always maintain a professional and compassionate tone. Do not provide medical 
+advice unless it's based on the patient's consultation history.
 Focus on helping the doctor manage their workflow and provide relevant patient context.
 
 When providing information:

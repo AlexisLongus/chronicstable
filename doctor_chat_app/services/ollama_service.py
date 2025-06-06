@@ -1,15 +1,18 @@
-import requests
+"""Service for interacting with Ollama LLM API.
+
+Provides methods for sending prompts to an Ollama LLM instance and handling responses.
+"""
 import json
 from typing import Dict, Any, List, Optional
 
+import requests
+
+
 class OllamaService:
-    """
-    Service for interacting with Ollama LLM API through AWS load balancer
-    """
+    """Service for interacting with Ollama LLM API through AWS load balancer."""
     
     def __init__(self, base_url: str, model: str):
-        """
-        Initialize the Ollama service
+        """Initialize the Ollama service.
         
         Args:
             base_url: Base URL for the Ollama API (with load balancer)
@@ -21,8 +24,7 @@ class OllamaService:
         self.generate_endpoint = self.base_url
     
     def get_response(self, prompt: str, context: Optional[str] = None) -> str:
-        """
-        Get a response from the Ollama API
+        """Get a response from the Ollama API.
         
         Args:
             prompt: The prompt to send to the model
@@ -65,8 +67,7 @@ class OllamaService:
             return f"Error: {error_msg}"
     
     def health_check(self) -> bool:
-        """
-        Check if the Ollama API is available
+        """Check if the Ollama API is available.
         
         Returns:
             True if the API is available, False otherwise

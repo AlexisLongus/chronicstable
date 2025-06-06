@@ -117,6 +117,19 @@ doctor_chat_app/
     └── context_builder.py  # Context generation utilities
 ```
 
+## Code Quality
+
+The entire codebase follows [PEP 8](https://peps.python.org/pep-0008/) styling standards for Python, ensuring:
+
+- Consistent code formatting and style
+- Clear docstrings for all modules, classes, and functions
+- Proper type hints
+- Logical organization of imports
+- Appropriate line length and indentation
+- Descriptive variable and function names
+
+This makes the code more readable, maintainable, and easier to extend.
+
 ## Usage
 
 1. Select a doctor from the sidebar

@@ -1,11 +1,19 @@
-import streamlit as st
-import pandas as pd
-from datetime import datetime
+"""ChronicStable Doctor Chat Application.
+
+A Streamlit-based app for doctors to manage patient information,
+appointments, and interact with an LLM assistant.
+"""
+# Standard library imports
 import os
 import time
+from datetime import datetime
+
+# Third-party imports
+import pandas as pd
+import streamlit as st
 from dotenv import load_dotenv
 
-# Import services and utilities
+# Local application imports
 from services.ollama_service import OllamaService
 from services.database_service import DatabaseService
 from utils.context_builder import build_patient_context
@@ -21,19 +29,27 @@ st.set_page_config(
     layout="wide",
 )
 
-# Initialize services
+
 @st.cache_resource
 def init_services():
+    """Initialize database and Ollama services.
+    
+    Returns:
+        Tuple containing database_service and ollama_service instances.
+    """
     # Initialize database service
-    db_service = DatabaseService(os.getenv("DATABASE_URL", "sqlite:///chronicstable.db"))
+    db_service = DatabaseService(
+        os.getenv("DATABASE_URL", "sqlite:///chronicstable.db")
+    )
     
     # Initialize Ollama service with AWS load balancer endpoint
     ollama_service = OllamaService(
         base_url=os.getenv("OLLAMA_API_URL", "http://localhost:11434"),
-        model=os.getenv("OLLAMA_MODEL", "llama2"),
+        model=os.getenv("OLLAMA_MODEL", "phi"),
     )
     
     return db_service, ollama_service
+
 
 db_service, ollama_service = init_services()
 
@@ -61,7 +77,9 @@ patient_category_filter = st.sidebar.radio(
 if patient_category_filter == "all":
     patient_list = db_service.get_patients_for_doctor(doctor_id)
 else:
-    patient_list = db_service.get_patients_by_category(doctor_id, patient_category_filter)
+    patient_list = db_service.get_patients_by_category(
+        doctor_id, patient_category_filter
+    )
 
 # Show count of patients by category
 if patient_list:
@@ -70,7 +88,10 @@ if patient_list:
 patient_id = st.sidebar.selectbox(
     "Select Patient",
     options=patient_list,
-    format_func=lambda x: f"{db_service.get_patient_name(x)} ({db_service.get_patient_category(x).capitalize()})"
+    format_func=lambda x: (
+        f"{db_service.get_patient_name(x)} "
+        f"({db_service.get_patient_category(x).capitalize()})"
+    )
 )
 
 # Tab navigation
@@ -89,11 +110,8 @@ with tab1:
         if "messages" not in st.session_state:
             st.session_state.messages = []
             
-        # Create a container for messages
-        # Create a container for the messages
+        # Create containers for messages and status
         message_container = st.container()
-        
-        # Container for the spinner and response status
         status_container = st.container()
         
         # Display chat history in the message container
@@ -118,7 +136,9 @@ with tab1:
             st.rerun()
         
         # Handle response generation
-        if st.session_state.processing and len(st.session_state.messages) > 0 and st.session_state.messages[-1]["role"] == "user":
+        if (st.session_state.processing and 
+                len(st.session_state.messages) > 0 and 
+                st.session_state.messages[-1]["role"] == "user"):
             # Get the last message from the user
             last_prompt = st.session_state.messages[-1]["content"]
             
@@ -134,7 +154,9 @@ with tab1:
                     response = ollama_service.get_response(last_prompt, context)
             
             # Add assistant message to chat history
-            st.session_state.messages.append({"role": "assistant", "content": response})
+            st.session_state.messages.append(
+                {"role": "assistant", "content": response}
+            )
             # Reset the processing flag
             st.session_state.processing = False
             st.rerun()
@@ -153,14 +175,24 @@ with tab2:
         
         with col1:
             st.markdown(f"**Date of Birth:** {patient.date_of_birth}")
-            st.markdown(f"**Medical Record Number:** {patient.medical_record_number}")
+            st.markdown(
+                f"**Medical Record Number:** {patient.medical_record_number}"
+            )
         
         with col2:
             # Display current category with appropriate highlighting
             if patient.category == "chronic":
-                st.markdown(f"**Patient Category:** <span style='background-color:#FFDDDD; padding:3px 8px; border-radius:3px;'>⚠️ Chronic</span>", unsafe_allow_html=True)
+                st.markdown(
+                    "**Patient Category:** <span style='background-color:#FFDDDD; "
+                    "padding:3px 8px; border-radius:3px;'>⚠️ Chronic</span>",
+                    unsafe_allow_html=True
+                )
             else:
-                st.markdown(f"**Patient Category:** <span style='background-color:#DDFFDD; padding:3px 8px; border-radius:3px;'>✓ Acute</span>", unsafe_allow_html=True)
+                st.markdown(
+                    "**Patient Category:** <span style='background-color:#DDFFDD; "
+                    "padding:3px 8px; border-radius:3px;'>✓ Acute</span>",
+                    unsafe_allow_html=True
+                )
             
             # Allow doctor to change patient category
             new_category = st.radio(
@@ -184,9 +216,13 @@ with tab2:
         
         if consultations:
             for consultation in consultations:
-                with st.expander(f"{consultation.date} - {consultation.diagnosis}"):
+                with st.expander(
+                    f"{consultation.date} - {consultation.diagnosis}"
+                ):
                     st.markdown(f"**Notes:** {consultation.notes}")
-                    st.markdown(f"**Treatment Plan:** {consultation.treatment_plan}")
+                    st.markdown(
+                        f"**Treatment Plan:** {consultation.treatment_plan}"
+                    )
         else:
             st.info("No previous consultations found")
     else:
@@ -205,11 +241,13 @@ with tab3:
         appointments = db_service.get_patient_appointments(patient_id)
         
         if appointments:
-            appointments_df = pd.DataFrame([{
-                "Date": apt.date_time.strftime("%Y-%m-%d %H:%M"),
-                "Purpose": apt.purpose,
-                "Status": apt.status
-            } for apt in appointments])
+            appointments_df = pd.DataFrame([
+                {
+                    "Date": apt.date_time.strftime("%Y-%m-%d %H:%M"),
+                    "Purpose": apt.purpose,
+                    "Status": apt.status
+                } for apt in appointments
+            ])
             
             st.dataframe(appointments_df)
         else:
@@ -237,9 +275,13 @@ with tab3:
                     status="scheduled"
                 )
                 
-                st.success(f"Appointment scheduled for {apt_datetime.strftime('%Y-%m-%d %H:%M')}")
+                st.success(
+                    f"Appointment scheduled for "
+                    f"{apt_datetime.strftime('%Y-%m-%d %H:%M')}"
+                )
     else:
         st.info("Please select a patient to schedule appointments")
+
 
 # Footer
 st.sidebar.markdown("---")

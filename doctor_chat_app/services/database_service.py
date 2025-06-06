@@ -1,13 +1,21 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Text
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship, Session
+"""Database service for ChronicStable Doctor Chat application.
+
+Provides models and services for accessing patient, doctor, appointment,
+and consultation data from the database.
+"""
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import (Column, DateTime, ForeignKey, Integer, String, Text,
+                        create_engine)
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session, relationship, sessionmaker
 
 # Database models
 Base = declarative_base()
 
 class Doctor(Base):
+    """Doctor model storing healthcare provider information."""
     __tablename__ = "doctors"
     
     id = Column(Integer, primary_key=True)
@@ -19,7 +27,9 @@ class Doctor(Base):
     consultations = relationship("Consultation", back_populates="doctor")
     appointments = relationship("Appointment", back_populates="doctor")
 
+
 class Patient(Base):
+    """Patient model storing core patient information and care category."""
     __tablename__ = "patients"
     
     id = Column(Integer, primary_key=True)
@@ -33,7 +43,9 @@ class Patient(Base):
     consultations = relationship("Consultation", back_populates="patient")
     appointments = relationship("Appointment", back_populates="patient")
 
+
 class Consultation(Base):
+    """Medical consultation record with diagnosis and treatment information."""
     __tablename__ = "consultations"
     
     id = Column(Integer, primary_key=True)
@@ -48,7 +60,9 @@ class Consultation(Base):
     patient = relationship("Patient", back_populates="consultations")
     doctor = relationship("Doctor", back_populates="consultations")
 
+
 class Appointment(Base):
+    """Appointment scheduling information between patient and doctor."""
     __tablename__ = "appointments"
     
     id = Column(Integer, primary_key=True)
@@ -63,13 +77,14 @@ class Appointment(Base):
     doctor = relationship("Doctor", back_populates="appointments")
 
 class DatabaseService:
-    """
-    Service for interacting with the database
+    """Service for interacting with the database.
+    
+    Provides methods to access and manipulate patient, doctor, appointment,
+    and consultation data in the database.
     """
     
     def __init__(self, database_url: str):
-        """
-        Initialize the database service
+        """Initialize the database service.
         
         Args:
             database_url: URL for the database connection
@@ -314,54 +329,93 @@ class DatabaseService:
         session.close()
     
     def get_all_doctors(self) -> List[int]:
-        """Get IDs of all doctors"""
+        """Get IDs of all doctors.
+        
+        Returns:
+            List of doctor IDs
+        """
         session = self.Session()
         doctors = session.query(Doctor.id).all()
         session.close()
         return [doctor[0] for doctor in doctors]
     
     def get_doctor_name(self, doctor_id: int) -> str:
-        """Get name of doctor by ID"""
+        """Get name of doctor by ID.
+        
+        Args:
+            doctor_id: ID of the doctor
+            
+        Returns:
+            Name of the doctor or 'Unknown Doctor' if not found
+        """
         session = self.Session()
         doctor = session.query(Doctor).filter(Doctor.id == doctor_id).first()
         session.close()
         return doctor.name if doctor else "Unknown Doctor"
     
     def get_patients_for_doctor(self, doctor_id: int) -> List[int]:
-        """Get IDs of patients associated with a doctor"""
+        """Get IDs of patients associated with a doctor.
+        
+        Args:
+            doctor_id: ID of the doctor
+            
+        Returns:
+            List of patient IDs associated with the doctor
+        """
         session = self.Session()
         
         # Get unique patient IDs from consultations and appointments
-        patient_ids_from_consultations = session.query(Consultation.patient_id).filter(
+        patient_ids_from_consultations = session.query(
+            Consultation.patient_id
+        ).filter(
             Consultation.doctor_id == doctor_id
         ).distinct().all()
         
-        patient_ids_from_appointments = session.query(Appointment.patient_id).filter(
+        patient_ids_from_appointments = session.query(
+            Appointment.patient_id
+        ).filter(
             Appointment.doctor_id == doctor_id
         ).distinct().all()
         
         # Combine and deduplicate
-        all_patient_ids = set([p[0] for p in patient_ids_from_consultations + patient_ids_from_appointments])
+        all_patient_ids = set(
+            [p[0] for p in patient_ids_from_consultations + 
+             patient_ids_from_appointments]
+        )
         
         session.close()
         return list(all_patient_ids)
     
     def get_patient_name(self, patient_id: int) -> str:
-        """Get name of patient by ID"""
+        """Get name of patient by ID.
+        
+        Args:
+            patient_id: ID of the patient
+            
+        Returns:
+            Name of the patient or 'Unknown Patient' if not found
+        """
         session = self.Session()
         patient = session.query(Patient).filter(Patient.id == patient_id).first()
         session.close()
         return patient.name if patient else "Unknown Patient"
         
     def get_patient_category(self, patient_id: int) -> str:
-        """Get category (chronic/acute) of patient by ID"""
+        """Get category (chronic/acute) of patient by ID.
+        
+        Args:
+            patient_id: ID of the patient
+            
+        Returns:
+            Category of the patient or 'unknown' if not found
+        """
         session = self.Session()
         patient = session.query(Patient).filter(Patient.id == patient_id).first()
         session.close()
         return patient.category if patient else "unknown"
         
     def get_patients_by_category(self, doctor_id: int, category: str) -> List[int]:
-        """Get patients of a specific category (chronic/acute) associated with a doctor
+        """Get patients of a specific category associated with a doctor.
         
         Args:
             doctor_id: ID of the doctor
@@ -385,14 +439,28 @@ class DatabaseService:
         return [p[0] for p in filtered_patients]
     
     def get_patient(self, patient_id: int) -> Optional[Patient]:
-        """Get patient details by ID"""
+        """Get patient details by ID.
+        
+        Args:
+            patient_id: ID of the patient
+            
+        Returns:
+            Patient object or None if not found
+        """
         session = self.Session()
         patient = session.query(Patient).filter(Patient.id == patient_id).first()
         session.close()
         return patient
     
     def get_patient_consultations(self, patient_id: int) -> List[Consultation]:
-        """Get consultations for a patient"""
+        """Get consultations for a patient.
+        
+        Args:
+            patient_id: ID of the patient
+            
+        Returns:
+            List of consultation records for the patient
+        """
         session = self.Session()
         consultations = session.query(Consultation).filter(
             Consultation.patient_id == patient_id
@@ -401,7 +469,14 @@ class DatabaseService:
         return consultations
     
     def get_patient_appointments(self, patient_id: int) -> List[Appointment]:
-        """Get appointments for a patient"""
+        """Get appointments for a patient.
+        
+        Args:
+            patient_id: ID of the patient
+            
+        Returns:
+            List of appointment records for the patient
+        """
         session = self.Session()
         appointments = session.query(Appointment).filter(
             Appointment.patient_id == patient_id
@@ -409,9 +484,21 @@ class DatabaseService:
         session.close()
         return appointments
     
-    def create_appointment(self, patient_id: int, doctor_id: int, date_time: datetime, 
-                          purpose: str, status: str = "scheduled") -> Appointment:
-        """Create a new appointment"""
+    def create_appointment(self, patient_id: int, doctor_id: int, 
+                          date_time: datetime, purpose: str, 
+                          status: str = "scheduled") -> Appointment:
+        """Create a new appointment.
+        
+        Args:
+            patient_id: ID of the patient
+            doctor_id: ID of the doctor
+            date_time: Date and time of the appointment
+            purpose: Purpose of the appointment
+            status: Status of the appointment (default: 'scheduled')
+            
+        Returns:
+            The created appointment record
+        """
         session = self.Session()
         
         appointment = Appointment(
@@ -435,7 +522,18 @@ class DatabaseService:
     
     def create_consultation(self, patient_id: int, doctor_id: int, notes: str, 
                            diagnosis: str, treatment_plan: str) -> Consultation:
-        """Create a new consultation"""
+        """Create a new consultation record.
+        
+        Args:
+            patient_id: ID of the patient
+            doctor_id: ID of the doctor
+            notes: Clinical notes for the consultation
+            diagnosis: Diagnosis determined during the consultation
+            treatment_plan: Treatment plan for the patient
+            
+        Returns:
+            The created consultation record
+        """
         session = self.Session()
         
         consultation = Consultation(
@@ -459,7 +557,7 @@ class DatabaseService:
         return result
         
     def update_patient_category(self, patient_id: int, category: str) -> bool:
-        """Update a patient's category (chronic/acute)
+        """Update a patient's category (chronic/acute).
         
         Args:
             patient_id: ID of the patient
@@ -477,7 +575,10 @@ class DatabaseService:
         
         try:
             # Get patient and update category
-            patient = session.query(Patient).filter(Patient.id == patient_id).first()
+            patient = session.query(Patient).filter(
+                Patient.id == patient_id
+            ).first()
+            
             if not patient:
                 session.close()
                 return False
