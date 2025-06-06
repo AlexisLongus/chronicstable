@@ -1,0 +1,16 @@
+# Virtual environments
+venv/
+.env/
+.venv/
+
+# Compiled files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Log files
+*.log
+
+# Local config files
+*.env
+*.DS_Store
