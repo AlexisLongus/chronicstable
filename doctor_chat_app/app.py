@@ -99,7 +99,7 @@ tab1, tab2, tab3 = st.tabs(["Chat", "Patient History", "Schedule"])
 
 # Tab 1: Chat Interface
 with tab1:
-    st.header("Doctor-Patient Chat")
+    st.header("Doctor AI Assistant")
     
     # Display selected patient info
     if patient_id:
