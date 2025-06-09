@@ -1,4 +1,4 @@
-# ChronicStable Doctor Chat App
+# ChronicStable Doctor AI App
 
 A Streamlit-based chat application for doctors to interact with an LLM assistant for patient scheduling, consultation history, and medical information access.
 
